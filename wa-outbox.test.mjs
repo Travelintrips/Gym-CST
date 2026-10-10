@@ -36,3 +36,21 @@ test('failed gateway delivery remains pending with retry',async()=>{
   assert.equal(state.attempts,1);
   db.close();
 });
+
+test('concurrent dispatch does not submit the same group message twice',async()=>{
+ const db=new DatabaseSync(':memory:');
+ db.exec("CREATE TABLE members(id INTEGER PRIMARY KEY,name TEXT);CREATE TABLE visits(id INTEGER PRIMARY KEY,member_id INTEGER,checkin TEXT)");
+ db.prepare("INSERT INTO members VALUES(?,?)").run(1,'Test Concurrent');
+ db.prepare("INSERT INTO visits VALUES(?,?,?)").run(11,1,'2026-10-10 01:15:00');
+ let submitted=0;
+ const outbox=createGymWaOutbox(db,{enabled:true,url:'https://wa.example',token:'token',groupId:'120363123456789012@g.us',fetcher:async()=>{
+   submitted++;
+   await new Promise(resolve=>setTimeout(resolve,30));
+   return {ok:true,json:async()=>({messageId:'id'})};
+ }});
+ outbox.enqueue(11);
+ await Promise.all([outbox.dispatch(),outbox.dispatch()]);
+ assert.equal(submitted,1);
+ assert.equal(db.prepare('SELECT status FROM wa_outbox WHERE visit_id=11').get().status,'accepted');
+ db.close();
+});
