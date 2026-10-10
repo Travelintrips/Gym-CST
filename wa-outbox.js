@@ -1,5 +1,3 @@
-import {randomUUID} from 'node:crypto';
-
 // The WhatsApp API acknowledges queue acceptance, not handset delivery.
 export function createGymWaOutbox(db, {url=process.env.GYM_WA_GATEWAY_URL,token=process.env.GYM_WA_GATEWAY_TOKEN,groupId=process.env.GYM_WA_GROUP_ID,deviceId=process.env.GYM_WA_DEVICE_ID,enabled=process.env.GYM_WA_ENABLED==='true',fetcher=fetch}={}) {
   db.exec(`CREATE TABLE IF NOT EXISTS wa_outbox(
@@ -28,7 +26,7 @@ export function createGymWaOutbox(db, {url=process.env.GYM_WA_GATEWAY_URL,token=
       try {
         const response=await fetcher(url.replace(/\/$/,'')+'/v1/messages',{
           method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+token,'idempotency-key':'gym-checkin-'+row.visit_id},
-          body:JSON.stringify({type:'text',text,groupId,...(deviceId?{deviceId}:{})}),
+          body:JSON.stringify({type:'text',text,to:groupId,groupId,...(deviceId?{deviceId}:{})}),
           signal:AbortSignal.timeout(10000)
         });
         const result=await response.json().catch(()=>({}));
