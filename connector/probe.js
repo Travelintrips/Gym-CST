@@ -2,6 +2,13 @@
 // Does not enroll, modify device settings, clear logs, or install remote access.
 import ZKLib from 'node-zklib';
 
+export function classifyX904Error(error) {
+  const nested=error?.err??error;
+  if(nested?.code==='ERR_OUT_OF_RANGE' || nested?.name==='RangeError')return 'DEVICE_RESPONSE_PARSE_ERROR: node-zklib received a packet shorter or differently formatted than expected. Stop device probes until protocol compatibility is verified.';
+  if(nested?.code==='ETIMEDOUT')return 'NETWORK_TIMEOUT: X904 did not respond before timeout.';
+  return 'UNKNOWN_DEVICE_ERROR: inspect the structured diagnostic; do not change device configuration.';
+}
+
 function explain(error) {
   if (error instanceof Error) {
     return {name:error.name,message:error.message || '(empty message)',code:error.code ?? null,cause:error.cause ? String(error.cause) : null};
@@ -38,6 +45,7 @@ try {
   console.log(JSON.stringify({protocolInfoReceived:true,deviceInfo:info},null,2));
 } catch (error) {
   console.error('X904 diagnostic failed:',JSON.stringify(explain(error)));
+  console.error('X904 diagnosis:',classifyX904Error(error));
   console.error('Transport reachability alone does not confirm X904 protocol compatibility.');
   process.exitCode=1;
 } finally {
