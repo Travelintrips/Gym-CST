@@ -27,3 +27,13 @@ test('remote insecure API URL is rejected',async()=>{
   apiUrl:'http://192.168.100.50:3109',apiKey:'test',fetcher:async()=>{throw Error('should never be called')}
  }),/HTTPS/);
 });
+
+test('malformed events are never stored',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'gym-invalid-'));
+ try {
+  const q=createEventQueue(join(dir,'pending.json'));
+  assert.throws(()=>q.add({eventId:'test-1',code:'M001',mode:'unknown'}),/Invalid event/);
+  assert.throws(()=>q.add({eventId:'',code:'M001',mode:'checkin'}),/Invalid event/);
+  assert.equal(q.count(),0);
+ }finally{rmSync(dir,{recursive:true,force:true})}
+});
