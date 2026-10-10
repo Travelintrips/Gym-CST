@@ -17,3 +17,6 @@ Production host: `gym.cstlogistic.co.id`. systemd service: `gym-access.service`.
 
 ## Security and device integration
 Owner login remains disabled until explicitly requested. Operator management must not be publicly writable without a verified access-control boundary. X904 connector remains experimental until tested with the physical device.
+
+## CI blocked / release gate
+GitHub Actions workflow runs on 2026-10-10 failed before any step executed (no runner assigned). Treat this as an infrastructure/permissions/billing blocker, not a successful test or a proven code failure. Do not merge to `erp` or deploy automatically until a runner completes all tests successfully. Check repository Actions settings, organization policies, runner availability and account Actions billing/usage. No credentials should be committed.
