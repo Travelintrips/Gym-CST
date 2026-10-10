@@ -8,8 +8,17 @@ function explain(error) {
   }
   if (error && typeof error === 'object') {
     const details={};
-    for (const key of ['name','message','code','errno','type','status']) {
+    for (const key of ['name','message','code','errno','type','status','command']) {
       if (error[key] !== undefined) details[key]=String(error[key]);
+    }
+    if (error.err !== undefined) {
+      const nested=error.err;
+      details.err=nested instanceof Error
+        ? {name:nested.name,message:nested.message,code:nested.code??null}
+        : (typeof nested==='string'||typeof nested==='number') ? String(nested)
+        : (nested && typeof nested==='object')
+          ? Object.fromEntries(['name','message','code','errno'].filter(k=>nested[k]!==undefined).map(k=>[k,String(nested[k])]))
+          : String(nested);
     }
     return Object.keys(details).length ? details : {kind:'non-standard object',keys:Object.keys(error).slice(0,12)};
   }
