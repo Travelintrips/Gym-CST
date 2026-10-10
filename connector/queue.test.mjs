@@ -37,3 +37,31 @@ test('malformed events are never stored',()=>{
   assert.equal(q.count(),0);
  }finally{rmSync(dir,{recursive:true,force:true})}
 });
+
+test('acknowledged events remain deduplicated after restart and repoll',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'gym-repoll-'));
+ try{
+ const file=join(dir,'pending.json');
+ const event={eventId:'X904:201',code:'M201',mode:'checkout'};
+ let queue=createEventQueue(file);
+ assert.equal(queue.add(event),true);
+ let sends=0;
+ await queue.flush(async()=>{sends++});
+ queue=createEventQueue(file);
+ assert.equal(queue.add(event),false);
+ assert.equal(queue.count(),0);
+ assert.equal(sends,1);
+ }finally{rmSync(dir,{recursive:true,force:true})}
+});
+test('migrates original array queue without losing events',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'gym-migrate-'));
+ try{
+ const file=join(dir,'pending.json');
+ const {writeFileSync}=await import('node:fs');
+ writeFileSync(file,JSON.stringify([{eventId:'X904:3',code:'3',mode:'checkin'}]));
+ const q=createEventQueue(file);
+ assert.equal(q.count(),1);
+ assert.deepEqual(await q.flush(async()=>{}),{sent:1,pending:0});
+ assert.equal(createEventQueue(file).add({eventId:'X904:3',code:'3',mode:'checkin'}),false);
+ }finally{rmSync(dir,{recursive:true,force:true})}
+});
