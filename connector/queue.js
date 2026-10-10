@@ -1,29 +1,48 @@
 import {readFileSync,writeFileSync,renameSync,mkdirSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 
-// Small durable queue; a single connector process owns this directory.
+// Single-process durable queue. Delivery remains at-least-once: API-side
+// idempotency on eventId is required if a crash occurs after acknowledgement.
 export function createEventQueue(filename) {
   const path=resolve(filename);
   mkdirSync(dirname(path),{recursive:true,mode:0o700});
-  let items=[];
-  try {items=JSON.parse(readFileSync(path,'utf8'));if(!Array.isArray(items)||items.length>10000||items.some(x=>!x||typeof x.eventId!=='string'||!x.eventId||typeof x.code!=='string'||!['checkin','checkout'].includes(x.mode)))throw Error('Invalid queue')}catch(e){if(e.code!=='ENOENT')throw e}
+  let items=[],acknowledged=[];
+  try {
+    const parsed=JSON.parse(readFileSync(path,'utf8'));
+    if(Array.isArray(parsed)) items=parsed; // migration from v1 queue
+    else if(parsed && parsed.version===2 && Array.isArray(parsed.pending) && Array.isArray(parsed.acknowledged)) {
+      items=parsed.pending;acknowledged=parsed.acknowledged;
+    } else throw Error('Invalid queue format');
+  }catch(e){if(e.code!=='ENOENT')throw e}
+  const valid=e=>e && typeof e.eventId==='string' && e.eventId.length>0 &&
+    typeof e.code==='string' && ['checkin','checkout'].includes(e.mode);
+  if(items.length>10000 || items.some(e=>!valid(e)) ||
+     acknowledged.length>10000 || acknowledged.some(id=>typeof id!=='string'||!id) ||
+     new Set(items.map(e=>e.eventId)).size!==items.length)throw Error('Invalid queue');
+  const ackSet=new Set(acknowledged);
   function save() {
     const temp=path+'.tmp';
-    writeFileSync(temp,JSON.stringify(items),{mode:0o600});
+    writeFileSync(temp,JSON.stringify({version:2,pending:items,acknowledged}),{mode:0o600});
     renameSync(temp,path);
   }
   return {
     add(event) {
-      if(!event||typeof event.eventId!=='string'||!event.eventId||!['checkin','checkout'].includes(event.mode)||typeof event.code!=='string')throw Error('Invalid event');
-      if(items.some(x=>x.eventId===event.eventId))return false;
+      if(!valid(event))throw Error('Invalid event');
+      if(ackSet.has(event.eventId)||items.some(e=>e.eventId===event.eventId))return false;
       if(items.length>=10000)throw Error('Connector queue capacity exceeded');
       items.push(event);save();return true;
     },
     async flush(send) {
       let sent=0;
-      for(const event of [...items]){
+      for(const event of [...items]) {
         try {await send(event)}catch {break}
-        items=items.filter(x=>x.eventId!==event.eventId);save();sent++;
+        // A remote acknowledgement is authoritative. Keep the most recent IDs
+        // to suppress re-poll duplicates after restart.
+        if(!ackSet.has(event.eventId)) {
+          acknowledged.push(event.eventId);ackSet.add(event.eventId);
+          if(acknowledged.length>10000)ackSet.delete(acknowledged.shift());
+        }
+        items=items.filter(e=>e.eventId!==event.eventId);save();sent++;
       }
       return {sent,pending:items.length};
     },
