@@ -12,7 +12,11 @@ export function createGymWaOutbox(db, {url=process.env.GYM_WA_GATEWAY_URL,token=
   function enqueue(visitId) {
     db.prepare("INSERT OR IGNORE INTO wa_outbox(visit_id) VALUES (?)").run(visitId);
   }
+  let dispatching=false;
   async function dispatch() {
+    if(dispatching) return {busy:true};
+    dispatching=true;
+    try {
     if (!enabled || !url || !token || !groupId) return {enabled:false};
     const rows=db.prepare(`SELECT o.visit_id,m.name,v.checkin,o.attempts
       FROM wa_outbox o JOIN visits v ON v.id=o.visit_id
@@ -39,6 +43,7 @@ export function createGymWaOutbox(db, {url=process.env.GYM_WA_GATEWAY_URL,token=
       }
     }
     return {enabled:true,examined:rows.length,accepted};
+    } finally { dispatching=false; }
   }
   return {enqueue,dispatch};
 }
