@@ -32,7 +32,7 @@ export function createEventQueue(filename) {
       if(!valid(event))throw Error('Invalid event');
       if(ackSet.has(event.eventId)||items.some(e=>e.eventId===event.eventId))return false;
       if(items.length>=10000)throw Error('Connector queue capacity exceeded');
-      items.push(event);
+      items.push({eventId:event.eventId,code:event.code,mode:event.mode});
       try {save()} catch(error){items.pop();throw error}
       return true;
     },
