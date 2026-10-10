@@ -41,11 +41,11 @@ try {
   await zk.createSocket();
   opened=true;
   console.log('X904 diagnostic: protocol session established');
-  // Read device time only. getInfo() assumes a long fixed-size status payload
-  // and raises ERR_OUT_OF_RANGE on the shorter response seen on this X904.
-  const deviceTime=await zk.getTime();
-  if (!(deviceTime instanceof Date) || Number.isNaN(deviceTime.getTime())) throw new Error('Invalid device clock response');
-  console.log(JSON.stringify({protocolTimeRead:true,deviceTime:deviceTime.toISOString()},null,2));
+  // Only inspect exported method names. Avoid undocumented commands on a live X904.
+  const methods=[...new Set([...Object.getOwnPropertyNames(Object.getPrototypeOf(zk)),...Object.keys(zk)])]
+    .filter(name=>typeof zk[name]==='function' && !name.startsWith('_'))
+    .sort();
+  console.log(JSON.stringify({connected:true,availableMethods:methods,deviceReadAttempted:false},null,2));
 } catch (error) {
   console.error('X904 diagnostic failed:',JSON.stringify(explain(error)));
   console.error('X904 diagnosis:',classifyX904Error(error));
