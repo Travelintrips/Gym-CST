@@ -15,6 +15,8 @@ export function normalizeX904Attendance(event,{deviceId,timezone='Asia/Jakarta'}
 }
 export async function submitX904Event(normalized,{apiUrl,apiKey,fetcher=fetch}={}) {
   if (!apiUrl || !apiKey) throw new Error('Ingest settings missing');
+  const endpoint=new URL(apiUrl);
+  if(endpoint.protocol!=='https:' && !(endpoint.protocol==='http:' && ['127.0.0.1','localhost'].includes(endpoint.hostname)))throw new Error('Remote Gym API must use HTTPS');
   const response=await fetcher(apiUrl.replace(/\/$/,'')+'/api/device-event',{
     method:'POST',
     headers:{'content-type':'application/json','x-device-key':apiKey},
