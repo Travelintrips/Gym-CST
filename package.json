@@ -6,6 +6,6 @@
   "scripts": {
     "start": "node server.js",
     "test": "node smoke-test.mjs && node --test wa-outbox.test.mjs connector/*.test.mjs",
-    "check": "node --check server.js && node --check app.js && node --check wa-outbox.js && node --check connector/adapter.js && node --check connector/queue.js"
+    "check": "node --check server.js && node --check app.js && node --check wa-outbox.js && node --check connector/adapter.js && node --check connector/queue.js && node --check connector/runner.js"
   }
 }
