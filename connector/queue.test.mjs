@@ -65,3 +65,22 @@ test('migrates original array queue without losing events',async()=>{
  assert.equal(createEventQueue(file).add({eventId:'X904:3',code:'3',mode:'checkin'}),false);
  }finally{rmSync(dir,{recursive:true,force:true})}
 });
+
+test('crash-like lost acknowledgement retries with same stable event ID',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'gym-lost-ack-'));
+ try{
+  const file=join(dir,'pending.json');
+  const event={eventId:'X904:501',code:'M501',mode:'checkin'};
+  let queue=createEventQueue(file);
+  assert.equal(queue.add(event),true);
+  const attempts=[];
+  // Simulate server processing the request but losing the acknowledgement.
+  const first=await queue.flush(async item=>{attempts.push(item.eventId);throw Error('connection lost after server commit')});
+  assert.deepEqual(first,{sent:0,pending:1});
+  queue=createEventQueue(file);
+  const second=await queue.flush(async item=>{attempts.push(item.eventId);return {ok:true,duplicate:true}});
+  assert.deepEqual(second,{sent:1,pending:0});
+  assert.deepEqual(attempts,['X904:501','X904:501']);
+  assert.equal(createEventQueue(file).add(event),false);
+ }finally{rmSync(dir,{recursive:true,force:true})}
+});
