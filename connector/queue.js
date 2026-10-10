@@ -14,7 +14,7 @@ export function createEventQueue(filename) {
   }
   return {
     add(event) {
-      if(!event||typeof event.eventId!=='string')throw Error('Invalid event');
+      if(!event||typeof event.eventId!=='string'||!event.eventId||!['checkin','checkout'].includes(event.mode)||typeof event.code!=='string')throw Error('Invalid event');
       if(items.some(x=>x.eventId===event.eventId))return false;
       items.push(event);save();return true;
     },
