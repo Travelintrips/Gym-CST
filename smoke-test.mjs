@@ -15,4 +15,11 @@ try{let ready=false;for(let i=0;i<40;i++){try{const r=await request('/healthz');
  const repeat=await event('device-1-event-1','checkin');if(repeat[0]!==200||!repeat[1].duplicate)throw Error('X904 duplicate event not deduplicated');
  const double=await event('device-1-event-2','checkin');if(double[0]!==409)throw Error('Second open X904 visit not blocked');
  const finished=await event('device-1-event-3','checkout');if(finished[0]!==201)throw Error('X904 checkout failed');
+ const notifications=await request('/api/notifications',null,token);
+ if(notifications[0]!==200||!Array.isArray(notifications[1].recent)||notifications[1].recent.length!==2)throw Error('Queue visibility incorrect');
+ const unauth=await request('/api/notifications');
+ if(unauth[0]!==401)throw Error('Notifications endpoint exposed publicly');
+ const invalid=await fetch(base+'/api/device-event',{method:'POST',headers:{'content-type':'application/json','x-device-key':'incorrect'},body:JSON.stringify({eventId:'device-1-unauth',code:'X904T001',mode:'checkin'})});
+ if(invalid.status!==403)throw Error('Device API unauthorized request permitted');
+
  console.log('PASS health login members manual attendance and X904 idempotent events')}catch(e){console.error('FAIL',e.message);process.exitCode=1}finally{child.kill();rmSync(data,{recursive:true,force:true})}
