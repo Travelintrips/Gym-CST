@@ -21,3 +21,10 @@ test('submit authorized event, never sends biometric values',async()=>{
  assert.equal(JSON.parse(calls[0].opts.body).fingerprint,undefined);
  assert.equal(JSON.parse(calls[0].opts.body).eventId,'X904-A:2');
 });
+
+test('rejects successful HTTP status without explicit API acknowledgement',async()=>{
+ await assert.rejects(submitX904Event({eventId:'x',code:'M1',mode:'checkin'},{
+  apiUrl:'https://gym.example',apiKey:'test',
+  fetcher:async()=>({ok:true,json:async()=>({ok:false})})
+ }),/Invalid Gym API acknowledgement/);
+});
