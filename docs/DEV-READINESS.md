@@ -36,3 +36,11 @@ Tests cover application smoke flows, WhatsApp retry/deduplication/WIB formatting
 - Validate check-in/check-out classification from real sample events, including restart, duplicate, clock drift and offline sync.
 - Test the delivery lifecycle of Gateway group notifications. Do not infer success from HTTP 202.
 - Prove CI green before promoting DEV changes; protect PROD and its database.
+
+## Operator readiness and release checklist
+- GET /api/notifications is authenticated and returns queue counts plus the 50 newest message records. This shows accepted/failed/pending *gateway requests*, not confirmed handset delivery.
+- Never expose this endpoint or member identity to the public dashboard.
+- Before enabling real WhatsApp: define message retention, message destination authorization, accepted-to-delivered reconciliation, group opt-in/privacy notice, and redaction policies.
+- Before enabling X904: verify member device-code mapping, repeat-event behavior, timestamp integrity and local queue durability.
+- CI is a mandatory gate. A green local test does not replace GitHub Actions. If Actions fails without log/steps, investigate repository Actions permissions, runner availability, limits and security settings before classifying the code as passing.
+- Keep database backups/migrations and upgrade/rollback procedures separate from the choice of VPS/DNS/hosting; no deployment implied by this document.
