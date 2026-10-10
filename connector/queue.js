@@ -1,4 +1,4 @@
-import {readFileSync,writeFileSync,renameSync,mkdirSync} from 'node:fs';
+import {readFileSync,writeFileSync,renameSync,mkdirSync,openSync,fsyncSync,closeSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 
 // Single-process durable queue. Delivery remains at-least-once: API-side
@@ -22,7 +22,9 @@ export function createEventQueue(filename) {
   const ackSet=new Set(acknowledged);
   function save() {
     const temp=path+'.tmp';
-    writeFileSync(temp,JSON.stringify({version:2,pending:items,acknowledged}),{mode:0o600});
+    const fd=openSync(temp,'w',0o600);
+    try {writeFileSync(fd,JSON.stringify({version:2,pending:items,acknowledged}));fsyncSync(fd)}
+    finally {closeSync(fd)}
     renameSync(temp,path);
   }
   return {
@@ -30,7 +32,9 @@ export function createEventQueue(filename) {
       if(!valid(event))throw Error('Invalid event');
       if(ackSet.has(event.eventId)||items.some(e=>e.eventId===event.eventId))return false;
       if(items.length>=10000)throw Error('Connector queue capacity exceeded');
-      items.push(event);save();return true;
+      items.push(event);
+      try {save()} catch(error){items.pop();throw error}
+      return true;
     },
     async flush(send) {
       let sent=0;
@@ -38,11 +42,15 @@ export function createEventQueue(filename) {
         try {await send(event)}catch {break}
         // A remote acknowledgement is authoritative. Keep the most recent IDs
         // to suppress re-poll duplicates after restart.
+        const previousAck=[...acknowledged];
+        const previousItems=items;
         if(!ackSet.has(event.eventId)) {
           acknowledged.push(event.eventId);ackSet.add(event.eventId);
           if(acknowledged.length>10000)ackSet.delete(acknowledged.shift());
         }
-        items=items.filter(e=>e.eventId!==event.eventId);save();sent++;
+        items=items.filter(e=>e.eventId!==event.eventId);
+        try {save()}catch(error){items=previousItems;acknowledged=previousAck;ackSet.clear();for(const id of acknowledged)ackSet.add(id);throw error}
+        sent++;
       }
       return {sent,pending:items.length};
     },
