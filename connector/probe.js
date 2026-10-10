@@ -1,4 +1,4 @@
-// Diagnostic-only X904 protocol probe. Never reads biometric templates or attendance logs.
+// Diagnostic-only X904 protocol probe. Reads device clock only; no attendance records or biometric templates.
 // Does not enroll, modify device settings, clear logs, or install remote access.
 import ZKLib from 'node-zklib';
 
@@ -41,8 +41,11 @@ try {
   await zk.createSocket();
   opened=true;
   console.log('X904 diagnostic: protocol session established');
-  const info=await zk.getInfo();
-  console.log(JSON.stringify({protocolInfoReceived:true,deviceInfo:info},null,2));
+  // Read device time only. getInfo() assumes a long fixed-size status payload
+  // and raises ERR_OUT_OF_RANGE on the shorter response seen on this X904.
+  const deviceTime=await zk.getTime();
+  if (!(deviceTime instanceof Date) || Number.isNaN(deviceTime.getTime())) throw new Error('Invalid device clock response');
+  console.log(JSON.stringify({protocolTimeRead:true,deviceTime:deviceTime.toISOString()},null,2));
 } catch (error) {
   console.error('X904 diagnostic failed:',JSON.stringify(explain(error)));
   console.error('X904 diagnosis:',classifyX904Error(error));
