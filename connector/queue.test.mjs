@@ -84,3 +84,21 @@ test('crash-like lost acknowledgement retries with same stable event ID',async()
   assert.equal(createEventQueue(file).add(event),false);
  }finally{rmSync(dir,{recursive:true,force:true})}
 });
+
+test('pending event is written before API can acknowledge it',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'gym-fsync-'));
+ try{
+  const file=join(dir,'pending.json');
+  const q=createEventQueue(file);
+  const event={eventId:'X904:durable',code:'M1',mode:'checkin'};
+  q.add(event);
+  const {readFileSync}=await import('node:fs');
+  const stored=JSON.parse(readFileSync(file,'utf8'));
+  assert.equal(stored.version,2);
+  assert.deepEqual(stored.pending,[event]);
+  await q.flush(async()=>{});
+  const confirmed=JSON.parse(readFileSync(file,'utf8'));
+  assert.deepEqual(confirmed.pending,[]);
+  assert.deepEqual(confirmed.acknowledged,['X904:durable']);
+ }finally{rmSync(dir,{recursive:true,force:true})}
+});
