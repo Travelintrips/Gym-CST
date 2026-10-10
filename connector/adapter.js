@@ -24,5 +24,7 @@ export async function submitX904Event(normalized,{apiUrl,apiKey,fetcher=fetch}={
     signal:AbortSignal.timeout(10000)
   });
   if (!response.ok) throw new Error('Ingest HTTP '+response.status);
-  return response.json();
+  const acknowledgement=await response.json();
+  if(!acknowledgement || acknowledgement.ok!==true)throw new Error('Invalid Gym API acknowledgement');
+  return acknowledgement;
 }
