@@ -1,4 +1,4 @@
-import {randomBytes,timingSafeEqual} from 'node:crypto';
+import {randomBytes} from 'node:crypto';
 import {authorizeX904} from './admin-policy.js';
 
 // Owner control-plane for a future audited X904 device adapter.
