@@ -1,8 +1,9 @@
 // Candidate ZK-compatible ADMS HTTP response encoder for OFFLINE testing only.
-// The wire grammar is documented for other ZK/Solution terminals, not yet X904 verified.
+// Unverified candidate. Never send this response to live X904 until reviewed.
+// Do not advertise synthetic ATTLOGStamp or STAMP cursors: these might skip historical logs.
 export function makeCandidateAdmsHandshake(sn) {
  if(typeof sn!=='string'||!/^[A-Za-z0-9_-]{4,64}$/.test(sn))throw Error('invalid device serial');
- return ['GET OPTION FROM: '+sn,'STAMP=9999','ATTLOGStamp=9999','ErrorDelay=60','Delay=30','TransTimes=00:00;23:59','TransInterval=1','TransFlag=TransData AttLog','TimeZone=7','Realtime=1','Encrypt=None'].join('\n')+'\n';
+ return ['GET OPTION FROM: '+sn,'ErrorDelay=60','Delay=30','TransTimes=00:00;23:59','TransInterval=1','TransFlag=TransData AttLog','TimeZone=7','Realtime=1','Encrypt=None'].join('\n')+'\n';
 }
 export function inspectAdmsRequest(url,method) {
  const u=new URL(url,'https://test.invalid');
