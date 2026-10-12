@@ -2,7 +2,6 @@
 // Requires explicit local operator acknowledgment, validated installed driver,
 // and manual confirmation that CMD_FREE_DATA is permitted by device vendor.
 // Does not change attendance records, but releases protocol transfer buffers.
-import ZKLib from 'node-zklib';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {dirname,join} from 'node:path';
@@ -12,6 +11,7 @@ if(process.env.X904_READ_TEST_APPROVED!=='YES-I-APPROVE-BUFFER-READ') {
  console.error('Physical read blocked: require explicit approval of CMD_FREE_DATA semantics.');
  process.exit(2);
 }
+const {default:ZKLib}=await import('node-zklib');
 const pkg=require('node-zklib/package.json');
 if(pkg.version!=='1.3.0')throw Error('Unreviewed node-zklib version: '+pkg.version);
 const src=readFileSync(join(dirname(require.resolve('node-zklib/package.json')),'zklibtcp.js'),'utf8');
