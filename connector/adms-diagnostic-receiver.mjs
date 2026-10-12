@@ -12,12 +12,15 @@ export function createAdmsDiagnosticServer({token=process.env.GYM_ADMS_DIAGNOSTI
   const auth=String(req.headers['x-gym-diagnostic-token']||'');
   if(auth.length!==token.length||!timingSafeEqual(Buffer.from(auth),Buffer.from(token)))return reply(401,{ok:false,error:'unauthorized'});
   const url=new URL(req.url,'http://localhost');
-  const contentLength=Number(req.headers['content-length']||0);
+  const contentLengthRaw=req.headers['content-length'];
+  const contentLength=contentLengthRaw===undefined?0:Number(contentLengthRaw);
+  if(contentLengthRaw!==undefined&&(!Number.isSafeInteger(contentLength)||contentLength<0))return reply(400,{ok:false,error:'invalid_content_length'});
   const verdict=classifyAdmsRequest({method:req.method,path:url.pathname,table:url.searchParams.get('table'),bodyBytes:contentLength});
   if(!verdict.accept)return reply(422,{ok:false,error:'unsupported_adms_request'});
   if(verdict.category!=='attendance-staging-only')return reply(200,{ok:true,mode:'diagnostic-only',commands:[]});
-  let size=0,raw='';
-  for await(const chunk of req){size+=chunk.length;if(size>32768)return reply(413,{ok:false,error:'payload_too_large'});raw+=chunk.toString('utf8')}
+  let size=0;const chunks=[];
+  for await(const chunk of req){size+=chunk.length;if(size>32768)return reply(413,{ok:false,error:'payload_too_large'});chunks.push(chunk)}
+  const raw=Buffer.concat(chunks).toString('utf8');
   // Deliberately do not ACK a physical attendance upload, persist raw data,
   // parse identities, or push anything to Sport Center.
   const staged=parseStagingAttendance(raw);
