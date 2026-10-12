@@ -6,6 +6,7 @@ import {classifyAdmsRequest,parseStagingAttendance} from './adms-protocol.mjs';
 // Never deploy exposed to an actual X904 until its protocol, authentication,
 // response/ACK semantics, TLS reverse proxy, and vendor firmware are verified.
 export function createAdmsDiagnosticServer({token=process.env.GYM_ADMS_DIAGNOSTIC_TOKEN||'',host='127.0.0.1',port=0}={}) {
+ if(!['127.0.0.1','::1'].includes(host))throw Error('Diagnostic ADMS receiver must be bound to loopback only');
  if(token.length<32)throw Error('GYM_ADMS_DIAGNOSTIC_TOKEN must be at least 32 characters');
  const server=http.createServer(async(req,res)=>{
   const reply=(status,body)=>{res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(body))};
