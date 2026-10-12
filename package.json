@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "node smoke-test.mjs && node --test wa-outbox.test.mjs connector/*.test.mjs && npm run connector:dry-run",
-    "check": "node --check server.js && node --check app.js && node --check wa-outbox.js && node --check connector/adapter.js && node --check connector/queue.js && node --check connector/runner.js && node --check connector/dry-run.mjs && node --check connector/probe.js && node --check connector/audit-installed-driver.mjs",
+    "check": "node --check server.js && node --check app.js && node --check wa-outbox.js && node --check connector/adapter.js && node --check connector/queue.js && node --check connector/runner.js && node --check connector/dry-run.mjs && node --check connector/probe.js && node --check connector/audit-installed-driver.mjs && node --check connector/adms-diagnostic-receiver.mjs && node --check connector/adms-protocol.mjs",
     "connector:dry-run": "node connector/dry-run.mjs",
     "connector:audit-driver": "node connector/audit-installed-driver.mjs"
   }
