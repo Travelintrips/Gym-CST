@@ -30,7 +30,7 @@ export function parseAttlog(payload, serial) {
     if (!/^[A-Za-z0-9_-]{1,50}$/.test(pin)) throw new Error('Invalid user PIN');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !/^\d{2}:\d{2}:\d{2}$/.test(clock)) throw new Error('Invalid attendance timestamp');
     const when = new Date(day + 'T' + clock + '+07:00');
-    if (Number.isNaN(when.getTime()) || when.toLocaleDateString('en-CA', {timeZone:'Asia/Jakarta'}) !== day) throw new Error('Invalid attendance date');
+    if (Number.isNaN(when.getTime()) || new Date(when.getTime() + 7 * 3600000).toISOString().slice(0,10) !== day) throw new Error('Invalid attendance date');
     if (!/^\d{1,3}$/.test(status) || !/^\d{1,3}$/.test(verify)) throw new Error('Invalid status or verification type');
     const id = createHash('sha256').update([serial, line].join('\n')).digest('hex');
     return {id, serial, pin, deviceTime: day + ' ' + clock, status: Number(status), verify: Number(verify)};
