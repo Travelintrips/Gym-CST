@@ -12,5 +12,8 @@ test('ADMS diagnostic rejects anonymous and never accepts attendance as imported
   res=await fetch(base+'/iclock/cdata?table=USER',{method:'POST',headers,body:'test'});assert.equal(res.status,422);
   res=await fetch(base+'/iclock/cdata?table=ATTLOG',{method:'POST',headers,body:'sample'});assert.equal(res.status,422);
   assert.equal((await res.json()).error,'attendance_format_unverified');
+  res=await fetch(base+'/iclock/cdata?table=ATTLOG',{method:'POST',headers,body:'x'.repeat(32769)});assert.equal(res.status,422);
+  res=await fetch(base+'/iclock/cdata?table=ATTLOG',{method:'POST',headers,body:'z'.repeat(32768)});assert.equal(res.status,422);
+  assert.equal((await res.json()).error,'attendance_format_unverified');
  }finally{await new Promise(resolve=>instance.server.close(resolve))}
 });
