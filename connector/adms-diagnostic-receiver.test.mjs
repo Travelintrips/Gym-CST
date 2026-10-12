@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createAdmsDiagnosticServer} from './adms-diagnostic-receiver.mjs';
+test('ADMS diagnostic refuses public network exposure',()=>{ assert.throws(()=>createAdmsDiagnosticServer({token:'S'.repeat(40),host:'0.0.0.0'}),/loopback only/); });
 test('ADMS diagnostic rejects anonymous and never accepts attendance as imported',async()=>{
  const instance=createAdmsDiagnosticServer({token:'S'.repeat(40)});
  const address=await instance.listen();const base='http://127.0.0.1:'+address.port;
