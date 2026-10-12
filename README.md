@@ -1,24 +1,30 @@
-# Gym CST
+# Gym CST — Standalone Attendance (DEV)
 
-Internal CST Sport Center gym attendance web application.
+Gym CST is being prepared as an **independent** membership and attendance application. The target hosting environment, DNS and future systems integration are **undecided**. This repository makes no assumption that Gym must be deployed on a specific VPS or attached to Sport Center.
 
-## Local development
+## Included groundwork
+- Node.js 22+ Gym API and browser interface
+- SQLite-backed members, visits, operator authentication and reports
+- Authenticated device event ingest with event ID deduplication
+- Solution X904 read-only protocol probe and a protocol-independent adapter
+- WhatsApp group notification outbox with Jakarta-time formatting, stable idempotency key and retry
 
-Requires Node.js 22+.
-
+## Run locally (no VPS required)
 ```bash
+npm run check
 npm test
-PORT=3109 DATA_DIR=./data npm start
+PORT=3109 DATA_DIR=./data ADMIN_PASSWORD='<set secure local test password>' npm start
 ```
+For actual deployment use secret management rather than hardcoding credentials. Do not commit databases, private keys, device Comm Keys or biometric templates.
 
-Production uses an isolated SQLite database on VPS. Never commit databases, credentials, device communication keys, or biometric templates.
+## Configuration
+See `.env.example` and `docs/DEV-READINESS.md`. Notification delivery is **disabled by default**. Only enable after target group/device and gateway credentials are verified.
 
-## Production
+## Roadmap / release gates
+1. Finish operator permissions, membership rules and audit trail.
+2. Build a reliable on-LAN X904 collector **after** validating the real device protocol.
+3. Add durable device cursor/queue, hardware clock drift controls and unknown-member handling.
+4. Verify authenticated group notification lifecycle and delivery receipts.
+5. Pass GitHub CI and integration tests. Only then choose hosting/domain and deployment path.
 
-`gym.cstlogistic.co.id` uses systemd service `gym-access.service` on Hostinger VPS. Current public dashboard is read-only; member mutations require authenticated access. The X904 event API is disabled unless a dedicated device key is configured.
-
-## Roadmap
-
-- Configure verified Owner bootstrap and operator access.
-- Finish private operator interface, end-to-end browser tests and deployment pipeline.
-- Verify Solution X904 protocol on the local network before enabling the device connector.
+No current GitHub code change automatically deploys or changes any live server.
