@@ -12,5 +12,5 @@ export function parseStagingAttendance(body) {
   if(typeof body!=='string'||body.length>32768)throw Error('invalid staging payload');
   // Actual X904 wire format must be captured and reviewed before live parsing.
   // Never infer IN/OUT or create check-in records from an unvalidated field order.
-  return {accepted:false,needsFirmwareFixture:true,recordCountHint:body.split(/\\r?\\n/).filter(Boolean).length};
+  return {accepted:false,needsFirmwareFixture:true,recordCountHint:body.split(/\r?\n/).filter(Boolean).length};
 }
